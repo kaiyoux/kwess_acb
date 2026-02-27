@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Questrade ACB Processor</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f9f9f9; display: flex; justify-content: center; padding: 40px 20px; }
+        #acb-app { background: white; max-width: 600px; width: 100%; padding: 25px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid #eee; }
+        h3 { margin-top: 0; color: #333; text-align: center; }
+        label { display: inline; margin-bottom: 5px; font-weight: 600; font-size: 14px; color: #555; }
+        input, select { width: 100%; padding: 10px; margin-bottom: 20px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 15px; transition: opacity 0.2s; }
+        #login-btn { background: #4CAF50; color: white; margin-bottom: 20px; text-decoration: none; display: block; text-align: center; }
+        #submit-btn { background: #007bff; color: white; }
+        #submit-btn:disabled { background: #ccc; cursor: not-allowed; }
+        #results-container { margin-top: 20px; background: #fdfdfd; border: 1px solid #e0e0e0; border-radius: 6px; padding: 15px; display: none; }
+        #output-box { margin: 0; white-space: pre-wrap; font-family: monospace; font-size: 12px; color: #444; }
+    </style>
+</head>
+<body>
+
+<div id="acb-app">
+    <h3>Questrade ACB Processor</h3>
+    
+    <a id="login-btn" class="btn" href="#">1. Connect to Questrade</a>
+
+    <label>Access Token:</label>
+    <input type="text" id="token" placeholder="Automatically fills after login" readonly>
+    <input type="hidden" id="api_server">
+
+    <label>Account Type:</label>
+    <select id="acc_type">
+        <option value="Margin" selected>Margin</option>
+        <option value="TFSA">TFSA</option>
+        <option value="RRSP">RRSP</option>
+        <option value="Cash">Cash</option>
+        <option value="RESP">RESP</option>
+        <option value="FHSA">FHSA</option>
+        <option value="LIRA">LIRA</option>
+    </select>
+
+    <label>Start Date:</label>
+    <input type="date" id="start_date" value="2001-06-01">
+    
+    <label style="display: block; margin-bottom: 15px; font-size: 14px;">
+        <!-- Added style="width:auto; margin:0" to prevent the line break -->
+        <input type="checkbox" id="include_fees" checked style="width: auto; margin: 0; vertical-align: middle;"> Include commission fees?
+    </label>
+
+    <label>Email (Optional):</label>
+    <!-- Reduced margin-bottom to 4px -->
+    <input type="email" id="email" placeholder="results@example.com" style="margin-bottom: 4px;">    
+    <!-- Set margin-top to 0 to sit closer to the input -->
+    <p style="font-size: 11px; color: #666; margin-top: 0; margin-bottom: 15px;">
+        *By providing your email, you agree to receive Profit/Loss results.
+    </p>
+    
+    <!-- Added margin-top: 10px to create separation from the text above -->
+    <button id="submit-btn" class="btn" style="margin-top: 10px;">2. Process ACB Results</button>
+
+    <div id="results-container">
+        <pre id="output-box"></pre>
+    </div>
+</div>
+
+<script>
+(function() {
+    const myClientId = 'DEIpf9J-u9SoMcO2DI4IZDyKAO0gwg';
+    // IMPORTANT: Update this URL once your GitHub site is live!
+    const myRedirect = window.location.origin + window.location.pathname; 
+
+    // 1. HANDLE LOGIN
+    document.getElementById('login-btn').onclick = function(e) {
+        e.preventDefault();
+        const authUrl = "https://login.questrade.com/oauth2/authorize?client_id=" + myClientId + "&response_type=token" + "&redirect_uri=" + encodeURIComponent(myRedirect);
+        window.location.href = authUrl;
+    };
+
+    // 2. CAPTURE DATA FROM REDIRECT
+    function checkHash() {
+        const hash = window.location.hash.substring(1);
+        if (hash.includes('access_token=')) {
+            const params = new URLSearchParams(hash);
+            document.getElementById('token').value = params.get('access_token');
+            document.getElementById('api_server').value = params.get('api_server');
+            document.getElementById('token').style.background = "#e8f5e9";
+            
+            document.getElementById('results-container').style.display = "block";
+            document.getElementById('output-box').innerText = "✅ Questrade Connected!";
+            
+            // Remove token from address bar for security
+            window.history.replaceState(null, null, window.location.pathname);
+        }
+    }
+    checkHash();
+
+    // 3. SUBMIT TO BACKEND
+    document.getElementById('submit-btn').onclick = async function() {
+        const btn = this;
+        const out = document.getElementById('output-box');
+        const token = document.getElementById('token').value;
+
+        if (!token) return alert("Please connect to Questrade first.");
+
+        btn.disabled = true;
+        btn.innerText = "Processing...";
+        document.getElementById('results-container').style.display = "block";
+        out.innerText = "Processing transactions...";
+
+        try {
+            const res = await fetch('https://kwess-acb-web.vercel.app', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    token: token,
+                    api_server: document.getElementById('api_server').value,
+                    acc_type: document.getElementById('acc_type').value,
+                    start_date: document.getElementById('start_date').value || "2001-06-01",
+                    include_fees: document.getElementById('include_fees').checked ? "TRUE" : "FALSE",
+                    email: document.getElementById('email').value
+                })
+            });
+            const data = await res.json();
+            out.innerText = data.status === "success" ? "✅ Done!\n\n" + data.output : "❌ " + data.message;
+        } catch (e) {
+            out.innerText = "⚠️ Error connecting to processing server.";
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "2. Process ACB Results";
+        }
+    };
+})();
+</script>
+
+</body>
+</html>
+
