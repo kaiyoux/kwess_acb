@@ -5,24 +5,89 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Questrade ACB Processor</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f9f9f9; display: flex; justify-content: center; padding: 40px 20px; }
-        #acb-app { background: white; max-width: 450px; width: 100%; padding: 25px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid #eee; }
-        h3 { margin-top: 0; color: #333; text-align: center; }
-        label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px; color: #555; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            background: #f9f9f9; 
+            display: flex; 
+            flex-direction: column;
+            align-items: center; 
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        header, footer, #acb-app { text-align: center; width: 100%; max-width: 450px; }
+        h1 { margin-bottom: 0; color: #222; font-size: 28px; }
+        .subtitle { margin-top: 5px; margin-bottom: 25px; color: #666; font-style: italic; }
+
+        #acb-app { 
+            background: white; 
+            padding: 25px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08); 
+            border: 1px solid #eee; 
+            box-sizing: border-box;
+        }
+
+        label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px; color: #555; text-align: left; }
         input, select { width: 100%; padding: 10px; margin-bottom: 20px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
-        .btn { width: 100%; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 15px; transition: opacity 0.2s; }
-        #login-btn { background: #4CAF50; color: white; margin-bottom: 20px; text-decoration: none; display: block; text-align: center; }
-        #submit-btn { background: #007bff; color: white; }
-        #submit-btn:disabled { background: #ccc; cursor: not-allowed; }
-        #results-container { margin-top: 20px; background: #fdfdfd; border: 1px solid #e0e0e0; border-radius: 6px; padding: 15px; display: none; }
+        
+        .btn { 
+            width: 100%; padding: 12px; border: none; border-radius: 6px; cursor: pointer; 
+            font-weight: bold; font-size: 15px; transition: opacity 0.2s; display: flex; 
+            align-items: center; justify-content: center; text-decoration: none; box-sizing: border-box; 
+        }
+        #login-btn { background: #4CAF50; color: white; margin-bottom: 20px; }
+        #submit-btn { background: #007bff; color: white; margin-top: 15px; position: relative; }
+        #submit-btn:disabled { background: #66b0ff; cursor: not-allowed; }
+        
+        /* Spinner Styles */
+        .spinner {
+            width: 16px; height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top: 2px solid #ffffff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 10px;
+            display: none; /* Hidden by default */
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        #results-container { margin-top: 20px; background: #fdfdfd; border: 1px solid #e0e0e0; border-radius: 6px; padding: 15px; display: none; text-align: left; }
         #output-box { margin: 0; white-space: pre-wrap; font-family: monospace; font-size: 12px; color: #444; }
+
+footer { 
+    margin-top: 30px; 
+    padding-bottom: 20px; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    gap: 12px; 
+    font-size: 14px; 
+    color: #777; 
+}
+.footer-logo { 
+    width: 80px; 
+    height: 80px; 
+    object-fit: contain; /* Prevents oblong stretching */
+    display: block; 
+    border-radius: 8px; 
+}
+@media (max-width: 480px) { 
+    .footer-logo { width: 60px; height: 60px; } 
+}
+
     </style>
 </head>
 <body>
 
+<header>
+    <h1>kwessACBweb</h1>
+    <div class="subtitle">a Questrade ACB processor</div>
+</header>
+
 <div id="acb-app">
-    <h3>Questrade ACB Processor</h3>
-    
     <a id="login-btn" class="btn" href="#">1. Connect to Questrade</a>
 
     <label>Access Token:</label>
@@ -43,28 +108,36 @@
     <label>Start Date:</label>
     <input type="date" id="start_date" value="2001-06-01">
     
-    <label style="display: block; margin-bottom: 15px; font-size: 14px;">
-        <!-- Added style="width:auto; margin:0" to prevent the line break -->
-        <input type="checkbox" id="include_fees" checked style="width: auto; margin: 0; vertical-align: middle;"> Include commission fees?
+    <label style="display: flex; align-items: center; margin-bottom: 15px; font-size: 14px; cursor: pointer;">
+        <input type="checkbox" id="include_fees" checked style="width: auto; margin: 0 10px 0 0;"> Include commission fees?
     </label>
 
     <label>Email:</label>
-    <!-- Reduced margin-bottom to 4px -->
     <input type="email" id="email" style="margin-bottom: 15px;">    
     
-    <!-- Added margin-top: 10px to create separation from the text above -->
-    <button id="submit-btn" class="btn" style="margin-top: 15px;">2. Process ACB Results</button>
+    <button id="submit-btn" class="btn">
+        <span class="spinner" id="btn-spinner"></span>
+        <span id="btn-text">2. Process ACB Results</span>
+    </button>
 
     <div id="results-container">
         <pre id="output-box"></pre>
     </div>
 </div>
 
+<footer>
+    <span>Brought to you by: </span>
+    <a href="https://soloist.ai/kaiyoux" target="_blank" style="display: inline-block;">
+        <!-- The browser will now find 'logo.png' in your GitHub repo folder -->
+        <img src="logo.png" alt="Logo" class="footer-logo">
+    </a>
+</footer>
+
 <script>
 (function() {
     const myClientId = 'DEIpf9J-u9SoMcO2DI4IZDyKAO0gwg';
     // IMPORTANT: Update this URL once your GitHub site is live!
-    const myRedirect = 'https://kaiyoux.github.io/kwess_acb/'; 
+    const myRedirect = 'https://kaiyoux.github.io/kwess_acb/';
 
     // 1. HANDLE LOGIN
     document.getElementById('login-btn').onclick = function(e) {
@@ -81,7 +154,6 @@
             document.getElementById('token').value = params.get('access_token');
             document.getElementById('api_server').value = params.get('api_server');
             document.getElementById('token').style.background = "#e8f5e9";
-            
             document.getElementById('results-container').style.display = "block";
             document.getElementById('output-box').innerText = "✅ Questrade Connected!";
             
@@ -94,13 +166,17 @@
     // 3. SUBMIT TO BACKEND
     document.getElementById('submit-btn').onclick = async function() {
         const btn = this;
+        const spinner = document.getElementById('btn-spinner');
+        const btnText = document.getElementById('btn-text');
         const out = document.getElementById('output-box');
         const token = document.getElementById('token').value;
 
         if (!token) return alert("Please connect to Questrade first.");
 
+        // UI Loading State
         btn.disabled = true;
-        btn.innerText = "Processing...";
+        spinner.style.display = "block";
+        btnText.innerText = "Processing...";
         document.getElementById('results-container').style.display = "block";
         out.innerText = "Processing transactions...";
 
@@ -122,8 +198,10 @@
         } catch (e) {
             out.innerText = "⚠️ Error connecting to processing server.";
         } finally {
+            // Restore UI State
             btn.disabled = false;
-            btn.innerText = "2. Process ACB Results";
+            spinner.style.display = "none";
+            btnText.innerText = "2. Process ACB Results";
         }
     };
 })();
