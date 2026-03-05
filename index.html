@@ -54,8 +54,45 @@
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        #results-container { margin-top: 20px; background: #fdfdfd; border: 1px solid #e0e0e0; border-radius: 6px; padding: 15px; display: none; text-align: left; }
-        #output-box { margin: 0; white-space: pre-wrap; font-family: monospace; font-size: 12px; color: #444; }
+        #results-container { 
+            margin-top: 20px; 
+            background: #fdfdfd; 
+            border: 1px solid #e0e0e0; 
+            border-radius: 6px; 
+            padding: 15px; 
+            display: none; 
+            text-align: left; 
+            max-width: 100%; 
+            overflow-x: hidden; 
+        }
+
+        /* This styles the container that holds the Vercel HTML */
+        #output-box { 
+            margin: 0; 
+            font-family: inherit; /* Switches from blocky monospace to clean system font */
+            font-size: 14px; 
+            color: #444; 
+            line-height: 1.5;
+            white-space: normal; /* Allow normal HTML wrapping */
+        }
+
+        /* New Styles for your Vercel HTML classes */
+        .report-header {
+            display: block;
+            font-size: 18px;
+            font-weight: bold;
+            color: #222;
+            border-bottom: 2px solid #007bff;
+            margin-bottom: 12px;
+            padding-bottom: 4px;
+        }
+
+        .report-content {
+            display: block;
+            margin-bottom: 8px;
+            padding: 4px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
 
 footer { 
     margin-top: 30px; 
@@ -194,9 +231,12 @@ footer {
                 })
             });
             const data = await res.json();
-            out.innerText = data.status === "success" ? "✅ Done!\n\n" + data.output : "❌ " + data.message;
-        } catch (e) {
-            out.innerText = "⚠️ Error connecting to processing server.";
+	    if (data.status === "success") {
+		// This renders the <h2> and <div> tags from your web_results
+		out.innerHTML = data.output; 
+	    } else {
+		out.innerText = "❌ " + data.message;
+	    }
         } finally {
             // Restore UI State
             btn.disabled = false;
