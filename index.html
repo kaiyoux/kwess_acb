@@ -54,44 +54,50 @@
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
+        /* Main container for results */
         #results-container { 
             margin-top: 20px; 
             background: #fdfdfd; 
             border: 1px solid #e0e0e0; 
-            border-radius: 6px; 
-            padding: 15px; 
+            border-radius: 12px; 
+            padding: 20px; 
             display: none; 
             text-align: left; 
             max-width: 100%; 
-            overflow-x: hidden; 
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
         }
 
-        /* This styles the container that holds the Vercel HTML */
+        /* Container for the HTML returned by Vercel */
         #output-box { 
             margin: 0; 
-            font-family: inherit; /* Switches from blocky monospace to clean system font */
+            font-family: inherit; /* Use the clean system font instead of monospace */
             font-size: 14px; 
             color: #444; 
-            line-height: 1.5;
-            white-space: normal; /* Allow normal HTML wrapping */
+            line-height: 1.6;
+            white-space: normal; /* Allow the HTML divs to stack naturally */
         }
 
-        /* New Styles for your Vercel HTML classes */
+        /* Styles for the <h2> tag from your Python code */
         .report-header {
             display: block;
             font-size: 18px;
-            font-weight: bold;
-            color: #222;
+            font-weight: 700;
+            color: #1a1a1a;
             border-bottom: 2px solid #007bff;
-            margin-bottom: 12px;
-            padding-bottom: 4px;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
         }
 
+        /* Styles for each <div class="report-content"> line */
         .report-content {
-            display: block;
-            margin-bottom: 8px;
-            padding: 4px 0;
-            border-bottom: 1px solid #f0f0f0;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+            word-break: break-word; /* Safe wrapping for mobile */
+        }
+
+        /* Remove border from the last item */
+        .report-content:last-of-type {
+            border-bottom: none;
         }
 
 footer { 
@@ -158,7 +164,7 @@ footer {
     </button>
 
     <div id="results-container">
-        <pre id="output-box"></pre>
+        <div id="output-box"></div>
     </div>
 </div>
 
